@@ -1,9 +1,17 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
+
 import gradio as gr
 import requests
 import json
 import time
 from typing import Dict, List, Optional
-from config import settings
+from utils.config import settings
 
 # API base URL
 API_BASE_URL = f"http://{settings.api_host}:{settings.api_port}"

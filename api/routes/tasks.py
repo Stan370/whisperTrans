@@ -1,8 +1,15 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_dir))
+
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import JSONResponse
 import json
-import os
 import zipfile
 import tempfile
 

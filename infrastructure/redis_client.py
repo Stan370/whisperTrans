@@ -1,9 +1,15 @@
+import sys
+import os
+from pathlib import Path
 import redis
 import time
 from typing import Optional, Dict, Any, List
-from config import settings
+from utils.config import settings
 from utils.logger import get_logger
 
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 logger = get_logger("redis_client")
 
 class RedisClient:

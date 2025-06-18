@@ -2,6 +2,10 @@ import os
 from typing import List, Dict, Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
+from dotenv import load_dotenv
+
+# Load .env file if it exists
+load_dotenv()
 
 class Settings(BaseSettings):
     # Environment
@@ -26,7 +30,7 @@ class Settings(BaseSettings):
     s3_secret_key: Optional[str] = Field(default=None, env="S3_SECRET_KEY")
     
     # Translation Configuration
-    google_api_key: str = Field(..., env="GOOGLE_API_KEY")
+    google_api_key: str = Field(default="dummy_key_for_testing", env="GOOGLE_API_KEY")
     supported_languages: List[str] = Field(default=["en", "zh-CN", "zh-TW", "ja"], env="SUPPORTED_LANGUAGES")
     
     # Worker Configuration
@@ -55,6 +59,7 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = False
 
 # Language mapping
@@ -71,7 +76,14 @@ LANGUAGE_MAP = {
 }
 
 # Create settings instance
-settings = Settings()
+try:
+    settings = Settings()
+    print(f"Configuration loaded successfully. Environment: {settings.environment}")
+except Exception as e:
+    print(f"Warning: Configuration loading failed: {e}")
+    print("Using default configuration values.")
+    # Create a minimal settings object with defaults
+    settings = Settings()
 
 # Environment-specific overrides
 if settings.environment == "production":

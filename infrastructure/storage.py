@@ -1,11 +1,15 @@
+import sys
 import os
+from pathlib import Path
 import boto3
 import tempfile
 from typing import Optional, BinaryIO, Dict, Any
-from pathlib import Path
-from config import settings
+from utils.config import settings
 from utils.logger import get_logger
 
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 logger = get_logger("storage")
 
 class StorageManager:

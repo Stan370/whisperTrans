@@ -1,10 +1,17 @@
+import sys
 import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
+
 import time
 import whisper
 import torch
 from typing import Dict, List, Optional
 import google.generativeai as genai
-from config import settings, LANGUAGE_MAP
+from utils.config import settings, LANGUAGE_MAP
 from core.models import TranslationTask, TranslationResult, TaskStatus
 from utils.logger import get_logger
 
@@ -19,17 +26,19 @@ class TranslationService:
         self._setup_models()
     
     def _setup_models(self):
-        """Setup Whisper and Gemini models."""
+        """Setup Whisper and translation models."""
         try:
-            # Setup Whisper model
-            device = self._get_device()
-            self.whisper_model = whisper.load_model(settings.whisper_model, device=device)
-            logger.info(f"Whisper model loaded: {settings.whisper_model} on {device}")
+            # Force CPU usage to avoid MPS backend issues on macOS
+            device = "cpu"
             
-            # Setup Gemini model
+            # Load Whisper model
+            self.whisper_model = WhisperModel(settings.whisper_model, device=device)
+            logger.info(f"FasterWhisper model loaded: {settings.whisper_model}")
+            
+            # Setup Google Generative AI
             genai.configure(api_key=settings.google_api_key)
-            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-            logger.info("Gemini model configured successfully")
+            self.gemini_model = genai.GenerativeModel('gemini-pro')
+            logger.info("Google Generative AI configured")
             
         except Exception as e:
             logger.error(f"Failed to setup models: {e}")
@@ -70,15 +79,14 @@ class TranslationService:
         return d[len(ref_words)][len(hyp_words)] / len(ref_words)
     
     def transcribe_audio(self, audio_file: str) -> str:
-        """Transcribe audio file using Whisper model."""
+        """Transcribe audio file using FasterWhisper model."""
         try:
             start_time = time.time()
-            result = self.whisper_model.transcribe(audio_file)
+            segments, info = self.whisper_model.transcribe(audio_file)
+            text = " ".join([segment.text for segment in segments])
             processing_time = time.time() - start_time
-            
             logger.info(f"Transcribed {audio_file} in {processing_time:.2f}s")
-            return result["text"].strip()
-            
+            return text.strip()
         except Exception as e:
             logger.error(f"Failed to transcribe {audio_file}: {e}")
             raise

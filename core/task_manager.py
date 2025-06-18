@@ -1,9 +1,17 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
+
 import json
 import time
 import uuid
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from config import settings, LANGUAGE_MAP
+from utils.config import settings, LANGUAGE_MAP
 from infrastructure.redis_client import redis_client
 from core.models import TranslationTask, TaskStatus, TranslationResult
 from utils.logger import get_logger

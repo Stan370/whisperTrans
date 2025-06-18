@@ -1,7 +1,14 @@
-import logging
 import sys
+import os
+from pathlib import Path
+
+import logging
 from typing import Optional
-from config import settings
+from utils.config import settings
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 
 class StructuredLogger:
     """Structured logger with consistent formatting and error handling."""

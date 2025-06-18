@@ -1,3 +1,11 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_dir))
+
 from fastapi import APIRouter, HTTPException
 import psutil
 from datetime import datetime
@@ -73,7 +81,6 @@ async def storage_health_check():
                 raise HTTPException(status_code=503, detail="S3 storage unavailable")
         else:
             # Test local storage
-            import os
             test_file = "temp/health_test.tmp"
             try:
                 with open(test_file, "w") as f:

@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .env
+*.mp3
+*.pem
+*.json
+*.zip

@@ -1,11 +1,18 @@
+import sys
 import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
+
 import time
 import uuid
 import signal
-import sys
+import psutil
 from typing import Optional
 from datetime import datetime
-from config import settings
+from utils.config import settings
 from core.task_manager import task_manager
 from core.translation_service import translation_service
 from core.models import TaskStatus

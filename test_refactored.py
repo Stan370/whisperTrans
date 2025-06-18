@@ -6,19 +6,27 @@ This script tests the basic functionality without requiring actual audio files.
 
 import sys
 import os
+from pathlib import Path
+
+# Add the root directory to Python path
+root_dir = Path(__file__).parent
+sys.path.insert(0, str(root_dir))
+
 import time
 import requests
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+import subprocess
+import signal
+import psutil
 
-# Add the current directory to Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Test configuration
+from utils.config import settings
 
 def test_config():
     """Test configuration loading."""
     print("Testing configuration...")
     try:
-        from config import settings
         print(f"✓ Configuration loaded successfully")
         print(f"  - Environment: {settings.environment}")
         print(f"  - API Host: {settings.api_host}")

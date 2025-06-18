@@ -1,3 +1,6 @@
+import sys
+import os
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -5,10 +8,13 @@ from fastapi.responses import JSONResponse
 import time
 import uvicorn
 
-from config import settings
+from utils.config import settings
 from api.routes import tasks, health
 from utils.logger import get_logger
 
+# Add the root directory to Python path BEFORE imports
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 logger = get_logger("api_main")
 
 # Create FastAPI app
@@ -16,6 +22,7 @@ app = FastAPI(
     title="Multilingual Story Translation System",
     description="A distributed, fault-tolerant system for translating storybook audio and text into multiple languages",
     version="1.0.0",
+    root_path="/api/v1",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None
 )
