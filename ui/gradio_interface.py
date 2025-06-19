@@ -34,33 +34,30 @@ class TranslationUI:
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
     
-    def upload_and_translate(self, zip_file, source_lang, target_langs):
-        """Upload ZIP file and create translation task."""
-        if not zip_file:
-            return "Please select a ZIP file to upload."
-        
+    def upload_and_translate(self, upload_files, source_lang, target_langs):
+        """Upload ZIP or MP3/JSON files and create translation task."""
+        if not upload_files:
+            return "Please select at least one file to upload."
         try:
             # Prepare form data
-            files = {"zip_file": zip_file}
+            # Gradio returns a single file or a list depending on selection
+            if not isinstance(upload_files, list):
+                upload_files = [upload_files]
+            files = [("files", (f.name, f, f.type if hasattr(f, 'type') else None)) for f in upload_files]
             data = {
                 "source_language": source_lang,
                 "target_languages": target_langs
             }
-            
-            # Make API request
             response = self._make_api_request(
-                "POST", 
-                "/api/v1/tasks/upload/zip",
+                "POST",
+                "/api/v1/upload",
                 files=files,
                 data=data
             )
-            
             if "error" in response:
                 return f"Upload failed: {response['error']}"
-            
             task_id = response.get("task_id")
             return f"Task created successfully! Task ID: {task_id}"
-            
         except Exception as e:
             return f"Upload failed: {str(e)}"
     
@@ -202,14 +199,15 @@ class TranslationUI:
         """Create the Gradio interface."""
         with gr.Blocks(title="Multilingual Story Translation System") as demo:
             gr.Markdown("# Multilingual Story Translation System")
-            gr.Markdown("Upload a ZIP file containing audio files and a JSON file with reference text to translate your storybook.")
+            gr.Markdown("Upload a ZIP file, or MP3/JSON files, to translate your storybook.")
             
             with gr.Tab("Upload & Translate"):
                 with gr.Row():
                     with gr.Column():
-                        zip_file = gr.File(
-                            label="Upload ZIP file containing audio and text files",
-                            file_types=[".zip"]
+                        upload_files = gr.File(
+                            label="Upload ZIP, MP3, or JSON files",
+                            file_types=[".zip", ".mp3", ".json"],
+                            file_count="multiple"
                         )
                         source_lang = gr.Dropdown(
                             choices=["en", "zh", "ja", "ko", "fr", "de", "es"],
@@ -226,7 +224,7 @@ class TranslationUI:
                 
                 upload_btn.click(
                     self.upload_and_translate,
-                    inputs=[zip_file, source_lang, target_langs],
+                    inputs=[upload_files, source_lang, target_langs],
                     outputs=upload_output
                 )
             

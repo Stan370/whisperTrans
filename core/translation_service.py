@@ -30,11 +30,8 @@ class TranslationService:
         try:
             # Force CPU usage to avoid MPS backend issues on macOS
             device = "cpu"
-            
-            # Load Whisper model
-            self.whisper_model = WhisperModel(settings.whisper_model, device=device)
-            logger.info(f"FasterWhisper model loaded: {settings.whisper_model}")
-            
+            self.whisper_model = whisper.load_model(settings.whisper_model, device=device)
+            logger.info(f"Whisper model loaded: {settings.whisper_model}")
             # Setup Google Generative AI
             genai.configure(api_key=settings.google_api_key)
             self.gemini_model = genai.GenerativeModel('gemini-pro')

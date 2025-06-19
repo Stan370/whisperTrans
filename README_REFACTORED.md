@@ -46,6 +46,66 @@ This is a completely refactored, distributed, fault-tolerant system for translat
 [Results] ← [Task Manager] ← [Redis] ← [Worker] ← [Storage Manager]
 ```
 
+### **Current Architecture**
+
+```mermaid
+flowchart TD
+    subgraph User Layer
+        A["User (Gradio UI/Web)"]
+    end
+    subgraph API Layer
+        B["API Gateway (FastAPI)"]
+    end
+    subgraph Queue Layer
+        C["Task Queue (Redis Streams)"]
+    end
+    subgraph Worker Layer
+        D["Worker Node(s)"]
+        D1["Whisper (STT)"]
+        D2["Gemini (Translation)"]
+    end
+    subgraph Storage Layer
+        E["File Storage (S3/Local)"]
+    end
+    subgraph Infra & Monitoring
+        F["Logger/Monitoring"]
+        G["Health Checks"]
+    end
+
+    A-->|"Upload MP3/Query Status"|B
+    B-->|"Save/Fetch Files"|E
+    B-->|"Create Task"|C
+    B-->|"Status/Health API"|G
+    D-->|"Polls Tasks"|C
+    D-->|"Download/Upload Files"|E
+    D-->|"Logs/Status"|F
+    D-->|"Updates Task Status"|C
+    D-->|"Health Heartbeat"|G
+    D-->|"STT"|D1
+    D1-->|"Text"|D2
+    D2-->|"Translation Result"|D
+```
+
+---
+
+### **Future Scalability Directions**
+
+```mermaid
+flowchart TD
+    subgraph Future_Scaling["Future Scaling"]
+        H["Multiple API Gateways (Load Balanced)"]
+        I["Multiple Worker Pools (per language/model)"]
+        J["External File Storage (S3/MinIO/OSS)"]
+        K["Centralized Monitoring (Prometheus/Grafana)"]
+        L["User Management/Auth Service"]
+    end
+    H-->|"Scale API Layer"|B
+    I-->|"Scale Worker Layer"|D
+    J-->|"Scale Storage Layer"|E
+    K-->|"Scale Monitoring"|F
+    L-->|"Add Auth/Users"|B
+```
+
 ## Key Improvements
 
 ### 1. **Eliminated Duplicate Code**
@@ -160,7 +220,7 @@ python workers/worker.py
 - `POST /api/v1/tasks/{task_id}/cancel` - Cancel task
 - `POST /api/v1/tasks/{task_id}/retry` - Retry failed task
 - `GET /api/v1/tasks/` - List all tasks
-- `POST /api/v1/tasks/upload/zip` - Upload ZIP file
+- `POST /api/v1/upload/` - Upload ZIP and mp3 file
 
 ### Health & Monitoring
 - `GET /api/v1/health/` - System health check
@@ -363,4 +423,55 @@ Set `DEBUG=true` in environment to enable:
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
+
+# System Design Document / 设计文档
+
+## 1. Overview / 概述
+This system is a distributed, scalable audio translation platform. It leverages FastAPI for the API Gateway, Redis Streams for task queueing and state, Whisper for speech-to-text, Gemini for translation, and S3/local storage for files. The architecture is modular, fault-tolerant, and designed for easy scaling and maintenance.
+
+本系统是一个分布式、可扩展的音频翻译平台。采用 FastAPI 作为 API 网关，Redis Streams 进行任务队列和状态管理，Whisper 进行语音转文本，Gemini 进行翻译，S3/本地存储文件。架构模块化，具备容错性，易于扩展和维护。
+
+## 2. Architecture / 架构
+
+![Architecture Diagram](./docs/architecture_diagram.png)
+
+### Modules / 模块
+- **API Gateway (FastAPI)**: Handles HTTP requests, task creation, status queries, and health checks. 负责 HTTP 请求、任务创建、状态查询和健康检查。
+- **Task Manager**: Manages task lifecycle, status, and retries using Redis Streams. 使用 Redis Streams 管理任务生命周期、状态和重试。
+- **File Manager**: Handles file uploads/downloads to S3 or local storage. 负责文件上传/下载到 S3 或本地存储。
+- **Worker Nodes**: Poll Redis Streams, process tasks (transcribe & translate), and update results. 轮询 Redis Streams，处理任务（转录和翻译），并更新结果。
+- **Translation Service**: Integrates Whisper (STT) and Gemini (translation). 集成 Whisper（语音转文本）和 Gemini（翻译）。
+- **UI (Gradio)**: Provides a user-friendly web interface. 提供用户友好的 Web 界面。
+
+## 3. Data Flow / 数据流
+1. **User uploads MP3** via API or Gradio UI.
+2. **API Gateway** saves the file (S3/local), creates a task in Redis Stream.
+3. **Worker Node** polls Redis Stream, downloads the file, processes it (Whisper+Gemini), saves the result, and updates task status.
+4. **User queries task status** via API.
+
+1. 用户通过 API 或 Gradio UI 上传 MP3。
+2. API 网关保存文件（S3/本地），在 Redis Stream 创建任务。
+3. Worker 节点轮询 Redis Stream，下载文件，处理（Whisper+Gemini），保存结果并更新任务状态。
+4. 用户通过 API 查询任务状态。
+
+## 4. Error Handling & Fault Tolerance / 错误处理与容错
+- **Redis Streams PEL/XCLAIM**: Ensures tasks are not lost; failed tasks are retried or reassigned. Redis Streams PEL/XCLAIM 保证任务不丢失，失败任务可重试或重新分配。
+- **Structured Logging**: All modules log to a central logger for monitoring and debugging. 所有模块统一日志，便于监控和调试。
+- **Health Checks**: API exposes endpoints to monitor worker liveness and system health. API 提供健康检查接口，监控 Worker 存活和系统健康。
+
+## 5. Scalability / 可扩展性
+- **Horizontal Scaling**: Add more worker nodes to increase throughput. 可通过增加 Worker 节点提升处理能力。
+- **Stateless API**: API Gateway is stateless and can be scaled independently. API 网关无状态，可独立扩展。
+- **Pluggable Storage**: Supports both S3 and local storage. 支持 S3 和本地存储。
+
+## 6. Configuration & Deployment / 配置与部署
+- All configuration via `.env` file. 所有配置通过 `.env` 文件管理。
+- Use `run.sh` to start all services, or start modules individually. 可用 `run.sh` 启动全部服务，也可单独启动模块。
+
+## 7. Developer Notes / 开发者须知
+- See `core/`, `api/`, `workers/`, `infrastructure/`, `ui/`, `utils/` for module code.
+- Use `tests/` for integration and unit tests.
+- Place uploads in `temp/uploads/` for processing.
+
+详细代码结构和接口说明请参考各模块 README。 

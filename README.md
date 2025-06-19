@@ -17,10 +17,93 @@ This project is a distributed, fault-tolerant system for translating storybook a
 - **Consolidated API** - single FastAPI backend handling all operations
 
 ## Architecture
+### **Current Architecture**
 
+```mermaid
+flowchart TD
+    subgraph User Layer
+        A["User (Gradio UI/Web)"]
+    end
+    subgraph API Layer
+        B["API Gateway (FastAPI)"]
+    end
+    subgraph Queue Layer
+        C["Task Queue (Redis Streams)"]
+    end
+    subgraph Worker Layer
+        D["Worker Node(s)"]
+        D1["Whisper (STT)"]
+        D2["Gemini (Translation)"]
+    end
+    subgraph Storage Layer
+        E["File Storage (S3/Local)"]
+    end
+    subgraph Infra & Monitoring
+        F["Logger/Monitoring"]
+        G["Health Checks"]
+    end
+
+    A-->|"Upload MP3/Query Status"|B
+    B-->|"Save/Fetch Files"|E
+    B-->|"Create Task"|C
+    B-->|"Status/Health API"|G
+    D-->|"Polls Tasks"|C
+    D-->|"Download/Upload Files"|E
+    D-->|"Logs/Status"|F
+    D-->|"Updates Task Status"|C
+    D-->|"Health Heartbeat"|G
+    D-->|"STT"|D1
+    D1-->|"Text"|D2
+    D2-->|"Translation Result"|D
 ```
-[User/Gradio UI] <-> [FastAPI Backend] <-> [Redis Streams Queue] <-> [Worker Nodes]
+
+---
+
+### **Future Scalability Directions**
+
+```mermaid
+flowchart TD
+    subgraph Future_Scaling["Future Scaling"]
+        H["Multiple API Gateways (Load Balanced)"]
+        I["Multiple Worker Pools (per language/model)"]
+        J["External File Storage (S3/MinIO/OSS)"]
+        K["Centralized Monitoring (Prometheus/Grafana)"]
+        L["User Management/Auth Service"]
+    end
+    H-->|"Scale API Layer"|B
+    I-->|"Scale Worker Layer"|D
+    J-->|"Scale Storage Layer"|E
+    K-->|"Scale Monitoring"|F
+    L-->|"Add Auth/Users"|B
 ```
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Gateway   │    │  Load Balancer  │    │   Web Client    │
+│   (FastAPI)     │    │    (future)     │    │   (Gradio UI)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+              ┌─────────────────────────────────────┐
+              │        Translation Service          │
+              │         (Core Business)             │
+              └─────────────────────────────────────┘
+                                 │
+        ┌────────────────────────┼────────────────────────┐
+        │                        │                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Task Manager   │    │  Worker Nodes   │    │  Streams Queue  │
+│   (Scheduler)   │    │   (Processors)  │    │   (MQ)          │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                        │                        │
+        └────────────────────────┼────────────────────────┘
+                                 │
+              ┌─────────────────────────────────────┐
+              │        Infrastructure Layer         │
+              │  Redis | PostgreSQL | File System   │
+              └─────────────────────────────────────┘
+```
+
 - **Gradio UI**: Uploads ZIP files, manages tasks, and displays results
 - **FastAPI Backend**: Handles API requests, manages tasks, and processes translations
 - **Redis Streams**: Stores and distributes translation tasks
@@ -32,6 +115,21 @@ This project is a distributed, fault-tolerant system for translating storybook a
 ```bash
 pip install -r requirements.txt
 ```
+Install ffmpeg
+
+#### macOS：
+```bash
+brew install ffmpeg
+```
+
+Ubuntu/Debian：
+```bash
+sudo apt-get update
+sudo apt-get install ffmpeg
+```
+Windows：
+- Windows: [ffmpeg 官网下载](https://ffmpeg.org/download.html)
+- conda: `conda install -c conda-forge ffmpeg`
 
 ### 2. Set Environment Variables
 ```bash
@@ -43,26 +141,14 @@ export GOOGLE_API_KEY="your_google_api_key_here"
 redis-server
 ```
 
-### 4. Start the FastAPI Backend
-```bash
-python api.py
-```
-
-### 5. Start the Gradio Web Interface
-```bash
-python app.py
-```
-
-### 6. Start One or More Worker Nodes
-```bash
-python translation_worker.py
-```
-
-### 7. Or use the convenience script
+### 4. Run script(Local dev). In production, you should use docker-compose
 ```bash
 ./run.sh
 ```
-
+### 5. Run worker
+```
+  python workers/worker.py
+```
 ## Usage
 
 ### 1. Prepare Input Files

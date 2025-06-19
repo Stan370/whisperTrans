@@ -7,7 +7,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 import time
 import uvicorn
-
+from api.routes.upload import upload_router
 from utils.config import settings
 from api.routes import tasks, health
 from utils.logger import get_logger
@@ -22,7 +22,6 @@ app = FastAPI(
     title="Multilingual Story Translation System",
     description="A distributed, fault-tolerant system for translating storybook audio and text into multiple languages",
     version="1.0.0",
-    root_path="/api/v1",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None
 )
@@ -59,6 +58,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(tasks.router)
 app.include_router(health.router)
+app.include_router(upload_router)
 
 # Root endpoint
 @app.get("/")
@@ -90,6 +90,7 @@ if __name__ == "__main__":
         "api.main:app",
         host=settings.api_host,
         port=settings.api_port,
+        reload=True,
         workers=settings.api_workers,
         log_level=settings.log_level.lower()
     ) 

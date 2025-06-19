@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # API Configuration
     api_host: str = Field(default="0.0.0.0", env="API_HOST")
     api_port: int = Field(default=8000, env="API_PORT")
-    api_workers: int = Field(default=1, env="API_WORKERS")
+    api_workers: int = Field(default=5, env="API_WORKERS")
     
     # Redis Configuration
     redis_host: str = Field(default="localhost", env="REDIS_HOST")
@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     worker_batch_size: int = Field(default=1, env="WORKER_BATCH_SIZE")
     worker_heartbeat_interval: int = Field(default=30, env="WORKER_HEARTBEAT_INTERVAL")
     worker_timeout: int = Field(default=300, env="WORKER_TIMEOUT")
+    worker_max_threads: int = Field(default=10, env="WORKER_MAX_THREADS")
     
     # File Configuration
     upload_dir: str = Field(default="temp/uploads", env="UPLOAD_DIR")

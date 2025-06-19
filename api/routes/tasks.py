@@ -1,11 +1,6 @@
 import sys
 import os
 from pathlib import Path
-
-# Add the root directory to Python path
-root_dir = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(root_dir))
-
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -21,6 +16,9 @@ from core.task_manager import task_manager
 from infrastructure.storage import storage_manager
 from utils.logger import get_logger
 
+# Add the root directory to Python path
+root_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_dir))
 logger = get_logger("api_tasks")
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
@@ -222,71 +220,3 @@ async def get_task_statistics():
     except Exception as e:
         logger.error(f"Failed to get task statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/upload/zip")
-async def upload_zip_file(
-    background_tasks: BackgroundTasks,
-    zip_file: UploadFile = File(...),
-    source_language: str = Form(default="en"),
-    target_languages: List[str] = Form(default=["zh", "ja"])
-):
-    """Upload a ZIP file containing audio and text files."""
-    try:
-        if not zip_file.filename.endswith('.zip'):
-            raise HTTPException(
-                status_code=400, 
-                detail="File must be a ZIP archive"
-            )
-        
-        # Create temporary directory for extraction
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Save uploaded ZIP file
-            zip_path = os.path.join(temp_dir, zip_file.filename)
-            with open(zip_path, "wb") as f:
-                content = await zip_file.read()
-                f.write(content)
-            
-            # Extract ZIP file
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(temp_dir)
-            
-            # Process extracted files
-            audio_files = []
-            text_data = {}
-            
-            for filename in os.listdir(temp_dir):
-                file_path = os.path.join(temp_dir, filename)
-                
-                if filename.endswith('.mp3'):  # Only MP3 files allowed
-                    audio_files.append(file_path)
-                elif filename.endswith('.json'):
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        text_data = json.load(f)
-            
-            if not audio_files:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="No MP3 audio files found in ZIP archive"
-                )
-            
-            # Create translation task
-            task_id = task_manager.create_task(
-                source_language=source_language,
-                target_languages=target_languages,
-                audio_files=audio_files,
-                text_data=text_data
-            )
-            
-            logger.info(f"Created task {task_id} from ZIP upload with {len(audio_files)} audio files")
-            
-            return TaskResponse(
-                task_id=task_id,
-                status=TaskStatus.PENDING,
-                message="ZIP file uploaded and task created successfully"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to process ZIP upload: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) 

@@ -1,6 +1,7 @@
 import sys
 import os
 from pathlib import Path
+import enum
 
 # Add the root directory to Python path
 root_dir = Path(__file__).parent.parent
@@ -17,6 +18,19 @@ from core.models import TranslationTask, TaskStatus, TranslationResult
 from utils.logger import get_logger
 
 logger = get_logger("task_manager")
+
+def serialize_for_redis(data):
+    result = {}
+    for k, v in data.items():
+        if isinstance(v, (list, dict)):
+            result[k] = json.dumps(v, ensure_ascii=False)
+        elif isinstance(v, enum.Enum):
+            result[k] = v.value
+        elif v is None:
+            result[k] = ""
+        else:
+            result[k] = str(v)
+    return result
 
 class TaskManager:
     """Centralized task manager with Redis streams and fault tolerance."""
@@ -62,7 +76,7 @@ class TaskManager:
         
         # Store task data in Redis
         task_key = f"task:{task_id}"
-        redis_client.hset(task_key, mapping=task.dict())
+        redis_client.hset(task_key, mapping=serialize_for_redis(task.dict()))
         
         # Add task to stream
         redis_client.xadd(
@@ -90,6 +104,14 @@ class TaskManager:
         task_data['retry_count'] = int(task_data.get('retry_count', 0))
         task_data['progress'] = float(task_data.get('progress', 0.0))
         
+        # Deserialize list/dict fields
+        for k in ['target_languages', 'audio_files', 'text_data']:
+            if k in task_data and task_data[k]:
+                try:
+                    task_data[k] = json.loads(task_data[k])
+                except Exception:
+                    pass
+        
         return TranslationTask(**task_data)
     
     def update_task_status(self, task_id: str, status: TaskStatus, 
@@ -114,7 +136,7 @@ class TaskManager:
         
         # Store updated task
         task_key = f"task:{task_id}"
-        redis_client.hset(task_key, mapping=task.dict())
+        redis_client.hset(task_key, mapping=serialize_for_redis(task.dict()))
         
         logger.info(f"Updated task {task_id} status to {status.value}")
         return True
@@ -146,7 +168,7 @@ class TaskManager:
         
         # Store updated task
         task_key = f"task:{task_id}"
-        redis_client.hset(task_key, mapping=task.dict())
+        redis_client.hset(task_key, mapping=serialize_for_redis(task.dict()))
         
         # Re-add to stream for processing
         redis_client.xadd(
@@ -265,6 +287,14 @@ class TaskManager:
                     task_data['retry_count'] = int(task_data.get('retry_count', 0))
                     task_data['progress'] = float(task_data.get('progress', 0.0))
                     
+                    # Deserialize list/dict fields
+                    for k in ['target_languages', 'audio_files', 'text_data']:
+                        if k in task_data and task_data[k]:
+                            try:
+                                task_data[k] = json.loads(task_data[k])
+                            except Exception:
+                                pass
+                    
                     task = TranslationTask(**task_data)
                     if status is None or task.status == status:
                         tasks.append(task)
@@ -358,4 +388,7 @@ class TaskManager:
         return stats
 
 # Global task manager instance
-task_manager = TaskManager() 
+task_manager = TaskManager()
+
+# Clean dead consumers
+redis_client.clean_dead_consumers("translation_tasks", "translation_workers") 

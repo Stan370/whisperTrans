@@ -176,6 +176,35 @@ class RedisClient:
             logger.error(f"Failed to create consumer group: {e}")
             return False
     
+    def xinfo_consumers(self, stream: str, group: str) -> list:
+        """Get info about consumers in a group."""
+        try:
+            return self.client.xinfo_consumers(stream, group)
+        except Exception as e:
+            logger.error(f"Failed to get consumers info for {stream}/{group}: {e}")
+            return []
+
+    def xgroup_delconsumer(self, stream: str, group: str, consumer: str) -> int:
+        """Delete a consumer from a group."""
+        try:
+            return self.client.xgroup_delconsumer(stream, group, consumer)
+        except Exception as e:
+            logger.error(f"Failed to delete consumer {consumer} from {stream}/{group}: {e}")
+            return 0
+
+    def clean_dead_consumers(self, stream: str, group: str, idle_ms: int = 3600000):
+        """Remove consumers idle for more than idle_ms milliseconds."""
+        consumers = self.xinfo_consumers(stream, group)
+        removed = 0
+        for c in consumers:
+            if c.get("idle", 0) > idle_ms:
+                name = c.get("name")
+                if name:
+                    self.xgroup_delconsumer(stream, group, name)
+                    logger.info(f"Removed dead consumer {name} from {stream}/{group} (idle {c['idle']} ms)")
+                    removed += 1
+        return removed
+    
     def close(self):
         """Close Redis connection."""
         if self._client:

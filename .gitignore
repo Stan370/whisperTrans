@@ -5,3 +5,5 @@ __pycache__/
 *.pem
 *.json
 *.zip
+*.rdb
+.DS_Store
