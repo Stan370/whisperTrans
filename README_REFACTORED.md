@@ -426,7 +426,7 @@ Set `DEBUG=true` in environment to enable:
 This project is licensed under the MIT License.
 
 # System Design Document / 设计文档
-
+Swagger: http://localhost:8000/docs
 ## 1. Overview / 概述
 This system is a distributed, scalable audio translation platform. It leverages FastAPI for the API Gateway, Redis Streams for task queueing and state, Whisper for speech-to-text, Gemini for translation, and S3/local storage for files. The architecture is modular, fault-tolerant, and designed for easy scaling and maintenance.
 

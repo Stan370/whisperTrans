@@ -218,7 +218,9 @@ redis-server
 - **Fault Tolerance**: Tasks are never lost; failed tasks can be retried
 
 ## Notes
-- Whisper models are downloaded on first run (ensure sufficient disk space)
+Swagger Openapi: http://localhost:8000/docs
+
+- Make sure you download Whisper,ffmpeg on first run (ensure sufficient disk space)
 - You need a Google API key for Gemini 2.0 Flash
 - For production, secure the API and Gradio endpoints
 - The system supports multiple languages: English, Chinese (Simplified/Traditional), Japanese, Korean, French, German, Spanish

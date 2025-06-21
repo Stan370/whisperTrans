@@ -16,12 +16,61 @@ check_command() {
 }
 export PYTHONPATH=$(pwd)
 
+# Store PIDs for cleanup
+API_PID=""
+GRADIO_PID=""
+WORKER_PIDS=()
+
 # Function to cleanup background processes
 cleanup() {
     echo "Shutting down services..."
-    pkill -f "python api/main.py" 2>/dev/null
-    pkill -f "python ui/gradio_interface.py" 2>/dev/null
-    pkill -f "python workers/worker.py" 2>/dev/null
+    
+    # Stop workers gracefully
+    echo "Stopping workers..."
+    for pid in "${WORKER_PIDS[@]}"; do
+        if kill -0 $pid 2>/dev/null; then
+            kill $pid
+        fi
+    done
+    
+    # Wait for workers to finish
+    for pid in "${WORKER_PIDS[@]}"; do
+        if kill -0 $pid 2>/dev/null; then
+            wait $pid 2>/dev/null
+        fi
+    done
+    
+    # Stop API and Gradio
+    if [ ! -z "$API_PID" ] && kill -0 $API_PID 2>/dev/null; then
+        echo "Stopping FastAPI backend..."
+        kill $API_PID
+        wait $API_PID 2>/dev/null
+    fi
+    
+    if [ ! -z "$GRADIO_PID" ] && kill -0 $GRADIO_PID 2>/dev/null; then
+        echo "Stopping Gradio UI..."
+        kill $GRADIO_PID
+        wait $GRADIO_PID 2>/dev/null
+    fi
+    
+    # Clean up old tasks before shutting down Redis
+    echo "Cleaning up old tasks..."
+    python -c "
+import sys
+sys.path.insert(0, '.')
+from core.task_manager import task_manager
+try:
+    cleaned = task_manager.cleanup_old_tasks(24)
+    print(f'Cleaned up {cleaned} old tasks')
+except Exception as e:
+    print(f'Failed to cleanup tasks: {e}')
+"
+    
+    # Stop Redis
+    echo "Stopping Redis server..."
+    redis-cli shutdown 2>/dev/null || echo "Redis already stopped"
+    
+    echo "All services stopped"
     exit 0
 }
 
@@ -65,6 +114,7 @@ check_port() {
     if lsof -i :$port &> /dev/null; then
         echo "Port $port is in use. Killing process..."
         kill $(lsof -t -i:$port)
+        sleep 1
     fi
 }
 
@@ -92,10 +142,14 @@ sleep 5  # Give Web Interface time to start
 
 echo "Gradio UI is running on http://localhost:7860"
 
-# Start Translation Worker (in foreground)
-echo "Starting Translation Worker..."
+# Start Translation Workers in background
+echo "Starting Translation Workers..."
 echo "Press Ctrl+C to stop all services"
 for i in {1..4}; do
   python workers/worker.py &
+  WORKER_PIDS+=($!)
 done
-# Note: The script will keep running until the translation worker is stopped 
+
+# Wait for all background processes
+echo "All services started. Waiting for termination signal..."
+wait 

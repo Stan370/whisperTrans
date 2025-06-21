@@ -74,6 +74,7 @@ class StorageManager:
         """Upload file to local storage."""
         try:
             dest_path = os.path.join(self.settings.upload_dir, key)
+            logger.info(f"os.path.join(self.settings.upload_dir, key): {dest_path}")
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             
             with open(file_path, "rb") as src, open(dest_path, "wb") as dst:
@@ -101,6 +102,7 @@ class StorageManager:
         try:
             if not dest_path:
                 dest_path = os.path.join(self.settings.upload_dir, os.path.basename(key))
+                logger.info(f"os.path.join(self.settings.upload_dir, os.path.basename(key)): {dest_path}")
             
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             self.s3_client.download_file(self.settings.s3_bucket, key, dest_path)
@@ -115,6 +117,7 @@ class StorageManager:
         """Download file from local storage."""
         try:
             src_path = os.path.join(self.settings.upload_dir, key)
+            logger.info(f"os.path.join(self.settings.upload_dir, key): {src_path}")
             if not os.path.exists(src_path):
                 logger.error(f"File not found in local storage: {key}")
                 return None
@@ -157,6 +160,7 @@ class StorageManager:
         """Delete file from local storage."""
         try:
             file_path = os.path.join(self.settings.upload_dir, key)
+            logger.info(f"os.path.join(self.settings.upload_dir, key): {file_path}")
             if os.path.exists(file_path):
                 os.remove(file_path)
                 logger.info(f"File deleted from local storage: {key}")
@@ -187,6 +191,7 @@ class StorageManager:
     def _exists_in_local(self, key: str) -> bool:
         """Check if file exists in local storage."""
         file_path = os.path.join(self.settings.upload_dir, key)
+        logger.info(f"os.path.join(self.settings.upload_dir, key): {file_path}")
         return os.path.exists(file_path)
     
     def get_file_url(self, key: str, expires_in: int = 3600) -> Optional[str]:
@@ -235,6 +240,7 @@ class StorageManager:
         for root, dirs, files in os.walk(self.settings.upload_dir):
             for file in files:
                 file_path = os.path.join(root, file)
+                logger.info(f"os.path.join(root, file): {file_path}")
                 if current_time - os.path.getmtime(file_path) > max_age_seconds:
                     try:
                         os.remove(file_path)

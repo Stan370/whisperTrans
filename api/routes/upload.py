@@ -15,6 +15,7 @@ sys.path.insert(0, str(root_dir))
 from core.models import TaskResponse, TaskStatus
 from core.task_manager import task_manager
 from utils.logger import get_logger
+from infrastructure.storage import storage_manager
 
 logger = get_logger("api_upload")
 
@@ -30,10 +31,11 @@ async def upload_files(
     """Unified upload endpoint: Accepts either a ZIP file or a set of MP3/JSON files."""
     try:
         # If a single file and it's a ZIP, process as ZIP
-        if len(files) == 1 and files[0].content_type == "application/zip":
+        if len(files) == 1 and files[0].filename.endswith('.zip'):
             zip_file = files[0]
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_path = os.path.join(temp_dir, zip_file.filename)
+                logger.info(f"os.path.join(temp_dir, zip_file.filename): {zip_path}")
                 with open(zip_path, "wb") as f:
                     content = await zip_file.read()
                     f.write(content)
@@ -41,14 +43,18 @@ async def upload_files(
                     zip_ref.extractall(temp_dir)
                 audio_files = []
                 text_data = {}
-                for root, dirs, filenames in os.walk(temp_dir):
-                    for filename in filenames:
-                        file_path = os.path.join(root, filename)
-                        if filename.endswith('.mp3'):
-                            audio_files.append(file_path)
-                        elif filename.endswith('.json'):
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                text_data = json.load(f)
+                for filename in os.listdir(temp_dir):
+                    file_path = os.path.join(temp_dir, filename)
+                    logger.info(f"os.path.join(temp_dir, filename): {file_path}")
+                    if filename.endswith('.mp3'):
+                        # Copy to persistent upload directory
+                        dest_path = os.path.join(storage_manager.settings.upload_dir, filename)
+                        logger.info(f"os.path.join(storage_manager.settings.upload_dir, filename): {dest_path}")
+                        shutil.copy(file_path, dest_path)
+                        audio_files.append(dest_path)
+                    elif filename.endswith('.json'):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            text_data = json.load(f)
                 if not audio_files:
                     raise HTTPException(
                         status_code=400,
@@ -76,10 +82,15 @@ async def upload_files(
                     if not filename.endswith(('.mp3', '.json')):
                         continue  # Skip unsupported files
                     file_path = os.path.join(temp_dir, filename)
+                    logger.info(f"os.path.join(temp_dir, filename): {file_path}")
                     with open(file_path, "wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
                     if filename.endswith('.mp3'):
-                        audio_files.append(file_path)
+                        # Copy to persistent upload directory
+                        dest_path = os.path.join(storage_manager.settings.upload_dir, filename)
+                        logger.info(f"os.path.join(storage_manager.settings.upload_dir, filename): {dest_path}")
+                        shutil.copy(file_path, dest_path)
+                        audio_files.append(dest_path)
                     elif filename.endswith('.json'):
                         with open(file_path, 'r', encoding='utf-8') as f:
                             text_data = json.load(f)

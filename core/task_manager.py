@@ -11,10 +11,10 @@ import json
 import time
 import uuid
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from utils.config import settings, LANGUAGE_MAP
 from infrastructure.redis_client import redis_client
-from core.models import TranslationTask, TaskStatus, TranslationResult
+from core.models import TranslationTask, TaskStatus
 from utils.logger import get_logger
 
 logger = get_logger("task_manager")
@@ -39,6 +39,8 @@ class TaskManager:
         self.stream_key = "translation_tasks"
         self.group_name = "translation_workers"
         self.consumer_name = f"worker-{uuid.uuid4().hex[:8]}"
+        self.last_cleanup_time = time.time()
+        self.cleanup_interval = 3600  # 1 hour
         self._setup_stream()
     
     def _setup_stream(self):
@@ -50,9 +52,33 @@ class TaskManager:
             logger.error(f"Failed to setup Redis stream: {e}")
             raise
     
+    def _check_redis_connection(self) -> bool:
+        """Check if Redis connection is healthy."""
+        try:
+            return redis_client.health_check()
+        except Exception as e:
+            logger.error(f"Redis connection check failed: {e}")
+            return False
+    
+    def _periodic_cleanup(self):
+        """Perform periodic cleanup of old tasks."""
+        current_time = time.time()
+        if current_time - self.last_cleanup_time > self.cleanup_interval:
+            try:
+                if self._check_redis_connection():
+                    cleaned = self.cleanup_old_tasks(24)
+                    if cleaned > 0:
+                        logger.info(f"Periodic cleanup: cleaned {cleaned} old tasks")
+                    self.last_cleanup_time = current_time
+            except Exception as e:
+                logger.error(f"Periodic cleanup failed: {e}")
+    
     def create_task(self, source_language: str, target_languages: List[str], 
                    audio_files: List[str], text_data: Dict[str, str]) -> str:
         """Create a new translation task."""
+        # Perform periodic cleanup
+        self._periodic_cleanup()
+        
         task_id = str(uuid.uuid4())
         
         # Validate languages
@@ -70,8 +96,8 @@ class TaskManager:
             target_languages=target_languages,
             audio_files=audio_files,
             text_data=text_data,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
         
         # Store task data in Redis
@@ -125,7 +151,7 @@ class TaskManager:
             return False
         
         task.status = status
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(UTC)
         
         if assigned_worker:
             task.assigned_worker = assigned_worker
@@ -162,7 +188,7 @@ class TaskManager:
         # Increment retry count and reset status
         task.retry_count += 1
         task.status = TaskStatus.PENDING
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(UTC)
         task.error_message = None
         task.progress = 0.0
         
@@ -199,6 +225,7 @@ class TaskManager:
             
             for _, messages in stream_data:
                 for message_id, message in messages:
+                    logger.info(f"Processing message {message_id}: {message}")
                     task_id = message["task_id"]
                     task = self.get_task(task_id)
                     
@@ -303,43 +330,10 @@ class TaskManager:
         
         return tasks
     
-    def store_results(self, task_id: str, results: Dict[str, TranslationResult]) -> bool:
-        """Store translation results."""
-        try:
-            results_key = f"results:{task_id}"
-            results_data = {
-                task_id: json.dumps([result.dict() for result in results.values()])
-            }
-            redis_client.hset(results_key, mapping=results_data)
-            logger.info(f"Stored results for task {task_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to store results for task {task_id}: {e}")
-            return False
-    
-    def get_results(self, task_id: str) -> Optional[Dict[str, TranslationResult]]:
-        """Get translation results."""
-        try:
-            results_key = f"results:{task_id}"
-            results_data = redis_client.hget(results_key, task_id)
-            if not results_data:
-                return None
-            
-            results_list = json.loads(results_data)
-            results = {}
-            for result_data in results_list:
-                result = TranslationResult(**result_data)
-                results[result.file_id] = result
-            
-            return results
-        except Exception as e:
-            logger.error(f"Failed to get results for task {task_id}: {e}")
-            return None
-    
     def cleanup_old_tasks(self, max_age_hours: int = 24) -> int:
         """Clean up old completed/failed tasks."""
         cleaned_count = 0
-        cutoff_time = datetime.utcnow() - timedelta(hours=max_age_hours)
+        cutoff_time = datetime.now(UTC) - timedelta(hours=max_age_hours)
         
         try:
             for key in redis_client.scan_iter("task:*"):
@@ -386,6 +380,36 @@ class TaskManager:
             logger.error(f"Failed to get task statistics: {e}")
         
         return stats
+    
+    def associate_story_with_task(self, story_name: str, task_id: str, title: str, languages: List[str], segment_count: int):
+        """Associate a story name with a task ID and store metadata in Redis."""
+        try:
+            story_key = f"story:{story_name}"
+            story_data = {
+                "task_id": task_id,
+                "title": title,
+                "languages": json.dumps(languages),
+                "segment_count": str(segment_count)
+            }
+            redis_client.hset(story_key, mapping=story_data)
+            logger.info(f"Associated story '{title}' with task {task_id}")
+        except Exception as e:
+            logger.error(f"Failed to associate story with task {task_id}: {e}")
+
+    def get_story_info(self, story_name: str) -> Optional[Dict]:
+        """Get story info by story name."""
+        try:
+            story_key = f"story:{story_name}"
+            story_data = redis_client.hgetall(story_key)
+            if not story_data:
+                return None
+            
+            story_data['languages'] = json.loads(story_data['languages'])
+            story_data['segment_count'] = int(story_data['segment_count'])
+            return story_data
+        except Exception as e:
+            logger.error(f"Failed to get story info for '{story_name}': {e}")
+            return None
 
 # Global task manager instance
 task_manager = TaskManager()

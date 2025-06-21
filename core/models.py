@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 
 class TaskStatus(str, Enum):
@@ -20,28 +20,12 @@ class TranslationTask(BaseModel):
     target_languages: List[str] = Field(..., description="Target language codes")
     audio_files: List[str] = Field(..., description="List of audio file paths")
     text_data: Dict[str, str] = Field(default_factory=dict, description="Reference text data")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Task creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), description="Task creation timestamp")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), description="Last update timestamp")
     assigned_worker: Optional[str] = Field(default=None, description="Worker assigned to task")
     error_message: Optional[str] = Field(default=None, description="Error message if task failed")
     retry_count: int = Field(default=0, description="Number of retry attempts")
     progress: float = Field(default=0.0, description="Task progress (0.0 to 1.0)")
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-class TranslationResult(BaseModel):
-    """Translation result model."""
-    task_id: str = Field(..., description="Task identifier")
-    file_id: str = Field(..., description="Audio file identifier")
-    original_text: str = Field(default="", description="Reference text")
-    stt_text: str = Field(..., description="Speech-to-text result")
-    wer: float = Field(..., description="Word Error Rate")
-    validated_text: str = Field(..., description="Text used for translation")
-    translations: Dict[str, str] = Field(..., description="Translations by language")
-    processing_time: float = Field(..., description="Processing time in seconds")
     
     class Config:
         json_encoders = {
@@ -74,7 +58,7 @@ class TaskStatusResponse(BaseModel):
 class HealthCheckResponse(BaseModel):
     """Health check response model."""
     status: str = Field(..., description="Service status")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Check timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="Check timestamp")
     version: str = Field(default="1.0.0", description="Service version")
     memory_usage: float = Field(..., description="Memory usage percentage")
     redis_connected: bool = Field(..., description="Redis connection status")
@@ -97,4 +81,4 @@ class FileUploadResponse(BaseModel):
     filename: str = Field(..., description="Original filename")
     size: int = Field(..., description="File size in bytes")
     storage_path: str = Field(..., description="Storage path")
-    upload_time: datetime = Field(default_factory=datetime.utcnow, description="Upload timestamp") 
+    upload_time: datetime = Field(default_factory=lambda: datetime.now(UTC), description="Upload timestamp") 

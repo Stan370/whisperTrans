@@ -9,7 +9,7 @@ import time
 import uvicorn
 from api.routes.upload import upload_router
 from utils.config import settings
-from api.routes import tasks, health
+from api.routes import tasks, health, stories
 from utils.logger import get_logger
 
 # Add the root directory to Python path BEFORE imports
@@ -58,6 +58,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(tasks.router)
 app.include_router(health.router)
+app.include_router(stories.router)
 app.include_router(upload_router)
 
 # Root endpoint

@@ -4,17 +4,12 @@
 # result = model.transcribe("audio.mp3")
 # print(result["text"])
 import requests
-
-with open("temp/uploads/Tilly's Lost Balloon.zip", "rb") as f:
-    r = requests.post(
-        "http://localhost:8000/api/v1/upload",
-        files=[("files", ("Tilly's Lost Balloon.zip", f, "application/zip"))],
-        data={"source_language": "en", "target_languages": "zh"}
-    )
-    print(r.status_code, r.text)
-
+# multipart/form-data init files
 files = [
-    ("files", ("Tilly's Lost Balloon.zip", open("temp/uploads/Tilly's Lost Balloon.zip", "rb"), "application/zip")),
+    ("files", ("1.mp3", open("temp/1.mp3", "rb"), "audio/mpeg")),
+    ("files", ("2.mp3", open("temp/uploads/2.mp3", "rb"), "audio/mpeg")),
+    ("files", ("3.mp3", open("temp/uploads/3.mp3", "rb"), "audio/mpeg")),
+    ("files", ("text.json", open("temp/uploads/text.json", "rb"), "application/json")),
 ]
 data = {"source_language": "en", "target_languages": "zh"}
 

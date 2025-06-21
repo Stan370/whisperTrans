@@ -8,7 +8,7 @@ sys.path.insert(0, str(root_dir))
 
 from fastapi import APIRouter, HTTPException
 import psutil
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, List
 
 from core.models import HealthCheckResponse, WorkerStatus
@@ -42,7 +42,7 @@ async def health_check():
         
         return HealthCheckResponse(
             status=status,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             version="1.0.0",
             memory_usage=memory_usage,
             redis_connected=redis_connected,
@@ -114,7 +114,7 @@ async def get_worker_status():
                     workers.append(WorkerStatus(
                         worker_id=worker_id,
                         status=worker_data.get("status", "unknown"),
-                        last_heartbeat=datetime.fromisoformat(worker_data.get("last_heartbeat", datetime.utcnow().isoformat())),
+                        last_heartbeat=datetime.fromisoformat(worker_data.get("last_heartbeat", datetime.now(UTC).isoformat())),
                         memory_usage=0.0,  # Would need to be reported by worker
                         cpu_usage=0.0,     # Would need to be reported by worker
                         active_tasks=int(worker_data.get("active_tasks", 0)),
@@ -163,7 +163,7 @@ async def get_system_info():
             },
             "memory": memory_info,
             "disk": disk_info,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:
@@ -195,7 +195,7 @@ async def get_metrics():
             "workers": {
                 "active_count": worker_count
             },
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
         return metrics

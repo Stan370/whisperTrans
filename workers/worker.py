@@ -11,7 +11,7 @@ import uuid
 import signal
 import psutil
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from utils.config import settings
 from core.task_manager import task_manager
 from core.translation_service import translation_service
@@ -28,7 +28,7 @@ class TranslationWorker:
     def __init__(self, max_workers: int = settings.worker_max_threads):
         self.worker_id = f"worker-{uuid.uuid4().hex[:8]}"
         self.running = False
-        self.last_heartbeat = datetime.utcnow()
+        self.last_heartbeat = datetime.now(UTC)
         self.active_tasks = 0
         self.completed_tasks = 0
         self.failed_tasks = 0
@@ -50,7 +50,7 @@ class TranslationWorker:
             heartbeat_data = {
                 "worker_id": self.worker_id,
                 "status": "active" if self.running else "stopping",
-                "last_heartbeat": datetime.utcnow().isoformat(),
+                "last_heartbeat": datetime.now(UTC).isoformat(),
                 "active_tasks": self.active_tasks,
                 "completed_tasks": self.completed_tasks,
                 "failed_tasks": self.failed_tasks
@@ -103,8 +103,14 @@ class TranslationWorker:
             task_manager.update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
             
             # Store results
-            if not task_manager.store_results(task_id, results):
-                raise Exception("Failed to store results")
+            if not translation_service.store_results(task_id, results):
+                logger.error(f"Failed to store results for task {task_id}")
+                task_manager.update_task_status(
+                    task_id, 
+                    TaskStatus.FAILED, 
+                    error_message="Failed to store results"
+                )
+                return False
             
             # Mark task as completed
             task_manager.update_task_status(task_id, TaskStatus.COMPLETED, progress=1.0)
