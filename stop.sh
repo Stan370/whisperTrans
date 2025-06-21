@@ -4,7 +4,7 @@ echo "Stopping all translation system services..."
 
 # Stop Python processes
     echo "Shutting down services..."
-    pkill -f "python api/main.py" 2>/dev/null
+    pkill -f "python main.py" 2>/dev/null
     pkill -f "python ui/gradio_interface.py" 2>/dev/null
     pkill -f "python workers/worker.py" 2>/dev/null
 

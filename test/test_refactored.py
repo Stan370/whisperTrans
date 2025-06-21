@@ -174,12 +174,12 @@ def main():
     print("✓ Health monitoring working")
     print("✓ Metrics collection working")
     print("\n🎉 Refactored system is ready!")
-    print("\nTo start the complete system:")
-    print("   ./run_refactored.sh")
-    print("\nOr start components individually:")
-    print("   python api/main.py")
-    print("   python ui/gradio_interface.py")
-    print("   python workers/worker.py")
+    print("To run the system locally:")
+    print("1. Start services: ./run.sh")
+    print("2. Open the UI: http://localhost:7860")
+    print("3. Stop services: ./stop.sh")
+    print("\nTo run with Docker:")
+    print("   make build && make up")
     
     return True
 

@@ -9,7 +9,7 @@ check_port() {
 # Start FastAPI backend in background
 check_port 8000
 echo "Starting FastAPI backend..."
-python api/main.py &
+python main.py &
 API_PID=$!
 sleep 3  # Give API time to start
 
