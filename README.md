@@ -65,7 +65,7 @@ flowchart TD
 flowchart TD
     subgraph Future_Scaling["Future Scaling"]
         H["Multiple API Gateways (Load Balanced)"]
-        I["Multiple Worker Pools (per language/model)"]
+        I["Dynamic Worker Pools (per language/model)"]
         J["External File Storage (S3/MinIO/OSS)"]
         K["Centralized Monitoring (Prometheus/Grafana)"]
         L["User Management/Auth Service"]
