@@ -224,6 +224,11 @@ Swagger Openapi: http://localhost:8000/docs
 - You need a Google API key for Gemini 2.0 Flash
 - For production, secure the API and Gradio endpoints
 - The system supports multiple languages: English, Chinese (Simplified/Traditional), Japanese, Korean, French, German, Spanish
-
+- 
+分布式任务处理: 基于Redis Stream的消息队列
+智能STT校验: 原始文本与语音识别结果的智能对比和纠错
+故障容错: 任务重试、故障转移、死信队列
+资源感知: 内存监控、负载均衡
+高效编码: 紧凑的多语言文本存储格式
 ## License
 MIT 
