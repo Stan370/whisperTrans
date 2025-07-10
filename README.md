@@ -1,5 +1,8 @@
 # Multilingual Storybook Translation System
 
+
+![Preview](https://lh3.googleusercontent.com/gg-dl/AJfQ9KS2rTCdibjbP9kTN26CztY3Sp7OPVthwDuKrG2A-kCg9IR6Leoz4NgHqyR6sdWBPAEd9JHJAxjb9LLV6f6jt73b9-LugdG2MWcRHltDeU9yvqG6j9zgIkNxdBKig3iUy7xSKbuFGxI5UVIScN7JCZoKb6IxLPscioE-2LEznSkI46aKQg=s1024
+)
 ## Overview
 
 This project is a distributed, fault-tolerant system for translating storybook audio and text into multiple languages. It uses Whisper for speech-to-text (STT), Google Gemini 2.0 Flash for translation, and Redis Streams for robust task queueing and management. The system includes a consolidated FastAPI backend and a Gradio web interface for easy interaction.
