@@ -1,7 +1,7 @@
 # Multilingual Storybook Translation System
 
 
-![Preview](https://lh3.googleusercontent.com/gg-dl/AJfQ9KS2rTCdibjbP9kTN26CztY3Sp7OPVthwDuKrG2A-kCg9IR6Leoz4NgHqyR6sdWBPAEd9JHJAxjb9LLV6f6jt73b9-LugdG2MWcRHltDeU9yvqG6j9zgIkNxdBKig3iUy7xSKbuFGxI5UVIScN7JCZoKb6IxLPscioE-2LEznSkI46aKQg=s1024
+![Preview]([https://lh3.googleusercontent.com/gg-dl/AJfQ9KS2rTCdibjbP9kTN26CztY3Sp7OPVthwDuKrG2A-kCg9IR6Leoz4NgHqyR6sdWBPAEd9JHJAxjb9LLV6f6jt73b9-LugdG2MWcRHltDeU9yvqG6j9zgIkNxdBKig3iUy7xSKbuFGxI5UVIScN7JCZoKb6IxLPscioE-2LEznSkI46aKQg=s1024](https://i.imgur.com/uEffWTF.jpeg)
 )
 ## Overview
 
