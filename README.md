@@ -22,7 +22,7 @@ This project is a distributed, fault-tolerant system for translating storybook a
 ### **Current Architecture**
 
 ```mermaid
-flowchart TD
+flowchart 
     subgraph User Layer
         A["User (Gradio UI/Web)"]
     end
