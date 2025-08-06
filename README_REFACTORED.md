@@ -6,6 +6,50 @@ This is a completely refactored, distributed, fault-tolerant system for translat
 
 ## Architecture
 
+### **Future Scalability Directions**
+
+```mermaid
+flowchart TD
+    subgraph Future_Scaling["Future Scaling"]
+        H["Multiple API Gateways (Load Balanced)"]
+        I["Multiple Worker Pools (per language/model)"]
+        J["External File Storage (S3/MinIO/OSS)"]
+        K["Centralized Monitoring (Prometheus/Grafana)"]
+        L["User Management/Auth Service"]
+    end
+    H-->|"Scale API Layer"|B
+    I-->|"Scale Worker Layer"|D
+    J-->|"Scale Storage Layer"|E
+    K-->|"Scale Monitoring"|F
+    L-->|"Add Auth/Users"|B
+```
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Gateway   │    │  Load Balancer  │    │   Web Client    │
+│   (FastAPI)     │    │    (future)     │    │   (Gradio UI)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+              ┌─────────────────────────────────────┐
+              │        Translation Service          │
+              │         (Core Business)             │
+              └─────────────────────────────────────┘
+                                 │
+        ┌────────────────────────┼────────────────────────┐
+        │                        │                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Task Manager   │    │  Worker Nodes   │    │  Streams Queue  │
+│   (Scheduler)   │    │   (Processors)  │    │   (MQ)          │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                        │                        │
+        └────────────────────────┼────────────────────────┘
+                                 │
+              ┌─────────────────────────────────────┐
+              │        Infrastructure Layer         │
+              │  Redis | PostgreSQL | File System   │
+              └─────────────────────────────────────┘
+```
 ### Core Components
 
 1. **API Gateway (FastAPI)**

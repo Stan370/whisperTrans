@@ -29,6 +29,7 @@ async def upload_files(
     target_languages: List[str] = Form(default=["zh", "ja"])
 ):
     """Unified upload endpoint: Accepts either a ZIP file or a set of MP3/JSON files."""
+    logger.info("upload_files endpoint called")
     try:
         # If a single file and it's a ZIP, process as ZIP
         if len(files) == 1 and files[0].filename.endswith('.zip'):

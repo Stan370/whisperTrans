@@ -56,16 +56,16 @@ cleanup() {
     # Clean up old tasks before shutting down Redis
     echo "Cleaning up old tasks..."
     python -c "
-import sys
-sys.path.insert(0, '.')
-from core.task_manager import task_manager
-try:
-    cleaned = task_manager.cleanup_old_tasks(24)
-    print(f'Cleaned up {cleaned} old tasks')
-except Exception as e:
-    print(f'Failed to cleanup tasks: {e}')
-"
-    
+        import sys
+        sys.path.insert(0, '.')
+        from core.task_manager import task_manager
+        try:
+            cleaned = task_manager.cleanup_old_tasks(24)
+            print(f'Cleaned up {cleaned} old tasks')
+        except Exception as e:
+            print(f'Failed to cleanup tasks: {e}')
+        "
+            
     # Stop Redis
     echo "Stopping Redis server..."
     redis-cli shutdown 2>/dev/null || echo "Redis already stopped"
@@ -96,8 +96,6 @@ mkdir -p logs
 # Start Redis server if not running
 echo "Starting Redis server..."
 redis-server --daemonize yes 2>/dev/null || echo "Redis already running"
-
-# Wait for Redis to start
 sleep 2
 
 # Check Redis connection
@@ -121,7 +119,7 @@ check_port() {
 # Start FastAPI backend in background
 check_port 8000
 echo "Starting FastAPI backend..."
-python main.py &
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 API_PID=$!
 sleep 3  # Give API time to start
 

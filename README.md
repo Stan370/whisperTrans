@@ -18,7 +18,6 @@ This project is a distributed, fault-tolerant system for translating storybook a
 - **Consolidated API** - single FastAPI backend handling all operations
 
 ## Architecture
-### **Current Architecture**
 
 ```mermaid
 flowchart TD
@@ -60,50 +59,6 @@ flowchart TD
 
 ---
 
-### **Future Scalability Directions**
-
-```mermaid
-flowchart TD
-    subgraph Future_Scaling["Future Scaling"]
-        H["Multiple API Gateways (Load Balanced)"]
-        I["Multiple Worker Pools (per language/model)"]
-        J["External File Storage (S3/MinIO/OSS)"]
-        K["Centralized Monitoring (Prometheus/Grafana)"]
-        L["User Management/Auth Service"]
-    end
-    H-->|"Scale API Layer"|B
-    I-->|"Scale Worker Layer"|D
-    J-->|"Scale Storage Layer"|E
-    K-->|"Scale Monitoring"|F
-    L-->|"Add Auth/Users"|B
-```
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   API Gateway   │    │  Load Balancer  │    │   Web Client    │
-│   (FastAPI)     │    │    (future)     │    │   (Gradio UI)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-              ┌─────────────────────────────────────┐
-              │        Translation Service          │
-              │         (Core Business)             │
-              └─────────────────────────────────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │                        │                        │
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Task Manager   │    │  Worker Nodes   │    │  Streams Queue  │
-│   (Scheduler)   │    │   (Processors)  │    │   (MQ)          │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-        │                        │                        │
-        └────────────────────────┼────────────────────────┘
-                                 │
-              ┌─────────────────────────────────────┐
-              │        Infrastructure Layer         │
-              │  Redis | PostgreSQL | File System   │
-              └─────────────────────────────────────┘
-```
 
 - **Gradio UI**: Uploads ZIP files, manages tasks, and displays results
 - **FastAPI Backend**: Handles API requests, manages tasks, and processes translations
@@ -137,12 +92,8 @@ Windows：
 export GOOGLE_API_KEY="your_google_api_key_here"
 ```
 
-### 3. Start Redis Server
-```bash
-redis-server
-```
 
-### 4. Run script(Local dev). In production, you should use docker-compose
+### 4. Run script to init Redis, FastApi backend(Local dev). In production, you should use docker-compose
 ```bash
 ./run.sh
 ```
@@ -189,7 +140,7 @@ redis-server
 - `POST /task/{task_id}/cancel` — Cancel a task
 - `GET /tasks` — List all tasks (optionally filter by status)
 - `GET /health` — Health check endpoint
-
+- `GET /story/{story_name}/text` - Get a specific text segment from a story
 ## Key Improvements
 
 ### 1. **Consolidated API Logic**
