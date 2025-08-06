@@ -1,0 +1,21 @@
+namespace Story;
+
+enum Source : byte { TEXT = 0, AUDIO = 1, TRANSLATION = 2 }
+
+table TextSegment {
+  id: string;
+  content: string;
+  source: Source;
+}
+
+table LanguagePack {
+  lang: string;
+  segments: [TextSegment];
+}
+
+table StoryPack {
+  story_name: string;
+  languages: [LanguagePack];
+}
+
+root_type StoryPack;
