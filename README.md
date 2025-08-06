@@ -1,4 +1,5 @@
 # Multilingual Storybook Translation System
+<img src="https://i.imgur.com/uEffWTF.jpeg">
 
 ## Overview
 
