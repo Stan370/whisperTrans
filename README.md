@@ -3,7 +3,8 @@
 
 ## Overview
 
-This project is a distributed, fault-tolerant system for translating storybook audio and text into multiple languages. It uses Whisper for speech-to-text (STT), Google Gemini 2.0 Flash for translation, and Redis Streams for robust task queueing and management. The system includes a consolidated FastAPI backend and a Gradio web interface for easy interaction.
+A high-concurrency, real-time chat system that supports Speech-to-Text (STT) and automatic multilingual translation, built with** Redis Streams** as the message queue and WebSocket for real-time event streaming.
+This project is a distributed, fault-tolerant system for translating storybook audio and text into multiple languages. It uses Whisper for speech-to-text (STT), Google Gemini 2.0 Flash for translation, and **Redis Streams** for robust task queueing and management. The system includes a consolidated FastAPI backend and a Gradio web interface for easy interaction.
 
 ## Features
 - **Batch translation** of storybook audio and text into multiple languages
