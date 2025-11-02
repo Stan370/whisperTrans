@@ -314,6 +314,7 @@ def main():
         server_port=7860,
         share=True
     )
+    demo.launch(share=True) 
 
 if __name__ == "__main__":
     main() 
