@@ -3,12 +3,11 @@
 
 ## Overview
 
-A high-concurrency, real-time chat system that supports Speech-to-Text (STT) and automatic multilingual translation, built with** Redis Streams** as the message queue and WebSocket for real-time event streaming.
-This project is a distributed, fault-tolerant system for translating storybook audio and text into multiple languages. It uses Whisper for speech-to-text (STT), Google Gemini 2.0 Flash for translation, and **Redis Streams** for robust task queueing and management. The system includes a consolidated FastAPI backend and a Gradio web interface for easy interaction.
+A high-concurrency, real-time chat system that supports Speech-to-Text (STT) and automatic multilingual translation, built with **Redis Streams** as the message queue and WebSocket for real-time event streaming.
+This project is a distributed, fault-tolerant system for translating storybook audio and text into multiple languages. It uses openai **Whisper** for speech-to-text (STT), Google Gemini 2.0 Flash for translation, and **Redis Streams** for robust task queueing and management. The system includes a consolidated FastAPI backend and a Gradio web interface for easy interaction.
 
 ## Features
 - **Batch translation** of storybook audio and text into multiple languages
-- **Speech-to-text** using local Whisper model
 - **STT accuracy check** using Word Error Rate (WER) against provided reference text
 - **Automatic fallback** to reference text if STT is inaccurate (WER > 0.3)
 - **Translation** using Google Gemini 2.0 Flash (faster and more accurate than traditional MT models)
@@ -68,11 +67,10 @@ flowchart TD
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Install Dependencies and ffmpeg for whisper
 ```bash
 pip install -r requirements.txt
 ```
-Install ffmpeg
 
 #### macOS：
 ```bash
@@ -85,7 +83,7 @@ sudo apt-get update
 sudo apt-get install ffmpeg
 ```
 Windows：
-- Windows: [ffmpeg 官网下载](https://ffmpeg.org/download.html)
+- Windows: [ffmpeg](https://ffmpeg.org/download.html)
 - conda: `conda install -c conda-forge ffmpeg`
 
 ### 2. Set Environment Variables

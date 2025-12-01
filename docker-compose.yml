@@ -33,5 +33,19 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
 
+  ui:
+    build: .
+    command: ["python", "ui/gradio_interface.py"]
+    ports:
+      - "7860:7860"
+    depends_on:
+      - api
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_HOST=api
+      - API_PORT=8000
+    volumes:
+      - .:/app
+
 volumes:
   redis_data: 
