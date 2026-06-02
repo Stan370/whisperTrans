@@ -1,0 +1,16 @@
+# PodDisruptionBudget — prevents K8s from evicting too many worker pods
+# simultaneously during node drain, rolling upgrades, or cluster maintenance.
+#
+# minAvailable: 1 means: "always keep at least 1 worker pod running."
+# During a node drain, K8s will respect this and wait for a worker to finish
+# its current task (within terminationGracePeriodSeconds) before evicting.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker-pdb
+  namespace: whispertrans
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: translation-worker

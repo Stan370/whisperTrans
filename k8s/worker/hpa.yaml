@@ -1,19 +1,46 @@
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+# KEDA ScaledObject — replaces the flawed CPU-based HPA.
+#
+# Why KEDA over HPA for this workload:
+#   HPA scales on CPU/memory thresholds which are LAGGING indicators.
+#   A worker can be 100% CPU during Whisper inference AND completely idle
+#   between tasks — HPA cannot tell the difference.
+#
+# KEDA scales on the Redis Stream *pending queue depth* — a LEADING indicator:
+#   - Queue depth > 0  → scale UP (tasks are waiting for a worker)
+#   - Queue depth == 0 → scale DOWN (no tasks waiting, safe to remove pods)
+#
+# This guarantees: scale-down only fires when the queue is empty, which means
+# any worker that receives SIGTERM has ALREADY finished its last task.
+# Combined with the StatefulSet's LIFO eviction order and 2h grace period,
+# task truncation is eliminated.
+#
+# Installation: https://keda.sh/docs/latest/deploy/
+#   kubectl apply -f https://github.com/kedacore/keda/releases/latest/download/keda-2.16.0.yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
-  name: worker-hpa
+  name: worker-scaledobject
   namespace: whispertrans
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: Deployment
+    kind: StatefulSet
     name: translation-worker
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+
+  # Scale between 0 and 5 workers
+  minReplicaCount: 0   # scale to zero when idle — saves RAM
+  maxReplicaCount: 5
+
+  # Wait 5m before scaling up (debounce burst), 30m before scaling down
+  # (tasks take time; don't scale down too eagerly)
+  pollingInterval:  15   # check Redis every 15 seconds
+  cooldownPeriod:   1800  # 30 minutes before scaling DOWN — tasks are long!
+
+  triggers:
+  - type: redis-streams
+    metadata:
+      # Target: 1 worker per 2 pending tasks in the stream
+      address: "redis.whispertrans.svc.cluster.local:6379"
+      stream: "translation_tasks"
+      consumerGroup: "translation_workers"
+      pendingEntriesCount: "2"  # scale up when >= 2 unacknowledged messages per worker

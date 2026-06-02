@@ -13,8 +13,12 @@ import time
 from typing import Dict, List, Optional
 from utils.config import settings
 
-# API base URL
-API_BASE_URL = f"http://{settings.api_host}:{settings.api_port}"
+# In K8s, the UI pod uses GRADIO_API_HOST/PORT to reach the API service.
+# In local dev (no K8s), it falls back to settings.api_host/api_port.
+_api_host = os.environ.get("GRADIO_API_HOST", settings.api_host)
+_api_port = os.environ.get("GRADIO_API_PORT", str(settings.api_port))
+API_BASE_URL = f"http://{_api_host}:{_api_port}"
+
 
 class TranslationUI:
     """Gradio interface for the translation system."""

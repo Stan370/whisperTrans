@@ -1,0 +1,17 @@
+# Headless service required by the StatefulSet for DNS-based pod discovery.
+# Each pod gets a stable DNS: worker-0.translation-worker.whispertrans.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: translation-worker
+  namespace: whispertrans
+  labels:
+    app: translation-worker
+spec:
+  clusterIP: None  # headless
+  selector:
+    app: translation-worker
+  ports:
+  - name: metrics
+    port: 9090      # reserved for future Prometheus scraping
+    targetPort: 9090

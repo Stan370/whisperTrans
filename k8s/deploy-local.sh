@@ -65,8 +65,11 @@ if [[ "${1:-}" == "--status" ]]; then
   echo "=== Services ==="
   kubectl -n "$NAMESPACE" get svc
   echo ""
-  echo "=== HPA ==="
-  kubectl -n "$NAMESPACE" get hpa 2>/dev/null || true
+  echo "=== KEDA ScaledObject ==="
+  kubectl -n "$NAMESPACE" get scaledobject 2>/dev/null || echo "  (KEDA not installed)"
+  echo ""
+  echo "=== PodDisruptionBudget ==="
+  kubectl -n "$NAMESPACE" get pdb 2>/dev/null || true
   echo ""
   echo "=== Endpoints ==="
   echo "  API Gateway : http://localhost:8000"
@@ -118,6 +121,16 @@ kubectl -n "$NAMESPACE" delete secret translation-secrets --ignore-not-found
 kubectl -n "$NAMESPACE" create secret generic translation-secrets \
   --from-literal=google-api-key="$GOOGLE_API_KEY"
 
+# Install KEDA (event-driven autoscaler — replaces HPA for Redis-queue-aware scaling)
+if ! kubectl get crd scaledobjects.keda.sh &>/dev/null; then
+  info "Installing KEDA..."
+  kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.16.0/keda-2.16.0.yaml
+  info "Waiting for KEDA to be ready..."
+  kubectl -n keda rollout status deployment/keda-operator --timeout=120s
+else
+  info "KEDA already installed — skipping."
+fi
+
 kubectl apply -f "$K8S_DIR/storage/pvc.yaml"
 kubectl apply -f "$K8S_DIR/redis/"
 kubectl apply -f "$K8S_DIR/api/"
@@ -135,8 +148,8 @@ info "Waiting for API to be ready..."
 kubectl -n "$NAMESPACE" rollout status deployment/translation-api --timeout=180s
 
 # ─── Step 7: Wait for Worker ──────────────────────────────────────────────────
-info "Waiting for Worker to be ready..."
-kubectl -n "$NAMESPACE" rollout status deployment/translation-worker --timeout=180s
+info "Waiting for Worker StatefulSet to be ready..."
+kubectl -n "$NAMESPACE" rollout status statefulset/translation-worker --timeout=180s
 
 # ─── Step 8: Wait for UI ──────────────────────────────────────────────────────
 info "Waiting for UI to be ready..."
@@ -182,9 +195,10 @@ echo "  API Docs    : http://localhost:8000/docs  (set DEBUG=true in configmap t
 echo "  Gradio UI   : http://localhost:7860"
 echo ""
 echo "  Useful commands:"
-echo "    kubectl -n $NAMESPACE get pods"
-echo "    kubectl -n $NAMESPACE logs -l app=translation-worker -f"
-echo "    kubectl -n $NAMESPACE port-forward svc/translation-api 8000:80"
-echo "    ./k8s/deploy-local.sh --status"
-echo "    ./k8s/deploy-local.sh --teardown"
+  echo "    kubectl -n $NAMESPACE get pods"
+  echo "    kubectl -n $NAMESPACE logs -l app=translation-worker -f"
+  echo "    kubectl -n $NAMESPACE get scaledobject worker-scaledobject  # KEDA queue depth"
+  echo "    kubectl -n $NAMESPACE port-forward svc/translation-api 8000:80"
+  echo "    ./k8s/deploy-local.sh --status"
+  echo "    ./k8s/deploy-local.sh --teardown"
 echo ""

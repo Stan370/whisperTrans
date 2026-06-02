@@ -1,12 +1,30 @@
+# StatefulSet — NOT Deployment — for the translation worker.
+#
+# Why StatefulSet over Deployment:
+#   1. Ordered, deterministic pod names (worker-0, worker-1...) so scale-down
+#      is always Last-In-First-Out (worker-N is killed first), not random.
+#   2. terminationGracePeriodSeconds=7200 gives a running Whisper job up to
+#      2 hours to finish before K8s force-kills it.
+#   3. The preStop lifecycle hook sets self.running=False via SIGTERM immediately,
+#      so the worker stops accepting new tasks from Redis while finishing its
+#      current ThreadPoolExecutor batch — this is cooperative drain, not abrupt kill.
+#
+# Scale-down safety guarantee:
+#   KEDA (see keda-scaledobject.yaml) scales based on Redis stream pending queue
+#   depth. It only scales DOWN when the queue is empty. An empty queue means
+#   all workers have either finished or have nothing running — so no SIGTERM
+#   ever lands on a mid-transcription pod.
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: translation-worker
   namespace: whispertrans
   labels:
     app: translation-worker
 spec:
-  replicas: 1
+  serviceName: translation-worker  # required for StatefulSet
+  replicas: 1                       # KEDA will override this at runtime
+  podManagementPolicy: Parallel     # don't wait for worker-0 before starting worker-1
   selector:
     matchLabels:
       app: translation-worker
@@ -15,11 +33,26 @@ spec:
       labels:
         app: translation-worker
     spec:
+      # ── Grace period ──────────────────────────────────────────────────────
+      # Allow up to 2 hours for a long-running Whisper job to finish.
+      # K8s sends SIGTERM first; only after this many seconds does it SIGKILL.
+      terminationGracePeriodSeconds: 7200
+
       containers:
       - name: worker
         image: whispertrans:latest
         imagePullPolicy: Never
         command: ["python", "workers/worker.py"]
+
+        # ── Lifecycle hook ────────────────────────────────────────────────
+        # preStop fires synchronously BEFORE SIGTERM is sent.
+        # Sleeping 5s lets the main loop detect self.running=False and stop
+        # pulling new tasks from Redis, so in-flight tasks can drain cleanly.
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "5"]
+
         envFrom:
         - configMapRef:
             name: whispertrans-config
@@ -29,6 +62,12 @@ spec:
             secretKeyRef:
               name: translation-secrets
               key: google-api-key
+        # Expose pod name so worker_id = pod name for traceability
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
         resources:
           requests:
             memory: "1Gi"
@@ -36,17 +75,13 @@ spec:
           limits:
             memory: "3Gi"
             cpu: "2"
-        # Workers are long-running — only check liveness, no readiness needed
-        livenessProbe:
-          exec:
-            command: ["python", "-c", "import sys; sys.exit(0)"]
-          initialDelaySeconds: 30
-          periodSeconds: 60
+
         volumeMounts:
         - name: uploads
           mountPath: /app/temp/uploads
         - name: results
           mountPath: /app/temp/results
+
       volumes:
       - name: uploads
         persistentVolumeClaim:

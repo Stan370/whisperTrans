@@ -11,6 +11,11 @@ data:
   DEBUG: "false"
   WORKER_MEMORY_LIMIT: "80"
   TASK_RETRY_LIMIT: "3"
-  API_HOST: "translation-api"
-  API_PORT: "80"
+  # API bind address (used by API pods)
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  # Explicit target for Gradio UI to reach the API service (K8s DNS)
+  GRADIO_API_HOST: "translation-api"
+  GRADIO_API_PORT: "80"
   PYTHONUNBUFFERED: "1"
+
