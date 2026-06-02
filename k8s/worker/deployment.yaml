@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translation-worker
+  namespace: whispertrans
+  labels:
+    app: translation-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: translation-worker
+  template:
+    metadata:
+      labels:
+        app: translation-worker
+    spec:
+      containers:
+      - name: worker
+        image: whispertrans:latest
+        imagePullPolicy: Never
+        command: ["python", "workers/worker.py"]
+        envFrom:
+        - configMapRef:
+            name: whispertrans-config
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: translation-secrets
+              key: google-api-key
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "3Gi"
+            cpu: "2"
+        # Workers are long-running — only check liveness, no readiness needed
+        livenessProbe:
+          exec:
+            command: ["python", "-c", "import sys; sys.exit(0)"]
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/temp/uploads
+        - name: results
+          mountPath: /app/temp/results
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: translation-uploads
+      - name: results
+        persistentVolumeClaim:
+          claimName: translation-results

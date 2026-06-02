@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whispertrans-config
+  namespace: whispertrans
+data:
+  ENVIRONMENT: "production"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  LOG_LEVEL: "INFO"
+  DEBUG: "false"
+  WORKER_MEMORY_LIMIT: "80"
+  TASK_RETRY_LIMIT: "3"
+  API_HOST: "translation-api"
+  API_PORT: "80"
+  PYTHONUNBUFFERED: "1"

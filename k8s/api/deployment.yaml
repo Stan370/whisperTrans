@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translation-api
+  namespace: whispertrans
+  labels:
+    app: translation-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: translation-api
+  template:
+    metadata:
+      labels:
+        app: translation-api
+    spec:
+      containers:
+      - name: api
+        image: whispertrans:latest
+        imagePullPolicy: Never   # use locally loaded image in kind
+        command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: whispertrans-config
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: translation-secrets
+              key: google-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health/
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health/
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/temp/uploads
+        - name: results
+          mountPath: /app/temp/results
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: translation-uploads
+      - name: results
+        persistentVolumeClaim:
+          claimName: translation-results

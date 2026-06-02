@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translation-ui
+  namespace: whispertrans
+  labels:
+    app: translation-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: translation-ui
+  template:
+    metadata:
+      labels:
+        app: translation-ui
+    spec:
+      containers:
+      - name: ui
+        image: whispertrans:latest
+        imagePullPolicy: Never
+        command: ["python", "ui/gradio_interface.py"]
+        ports:
+        - containerPort: 7860
+          name: http
+        envFrom:
+        - configMapRef:
+            name: whispertrans-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 7860
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7860
+          initialDelaySeconds: 15
+          periodSeconds: 10
